@@ -55,7 +55,17 @@ label.f{display:flex;flex-direction:column;gap:3px;font-size:.8rem;color:var(--m
 /* training */
 .dayhead .big{font-size:2.2rem}
 .ex{display:flex;flex-direction:column;gap:8px}
-.ex-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.ex-top{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:center}
+.ex-media{position:relative;width:96px;aspect-ratio:3/2;max-width:100%;padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg);cursor:zoom-in}
+.ex-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.ex-media .f2{animation:flip 2s steps(1) infinite}
+@keyframes flip{0%{opacity:0}50%{opacity:1}}
+.ex.zoom .ex-top{grid-template-columns:minmax(0,1fr) auto}
+.ex.zoom .ex-media{grid-column:1/-1;width:100%;cursor:zoom-out}
+.howto summary{cursor:pointer;font-size:.82rem;color:var(--accent)}
+.howto ol{margin:6px 0 0;padding-left:1.3em;font-size:.86rem}
+.howto li{margin:2px 0}
+@media (prefers-reduced-motion:reduce){.ex-media .f2{animation:none;opacity:0}}
 .ex-name{min-width:0}
 .ex-target{text-align:right;white-space:nowrap}
 .ex-target .num{font-size:1.5rem;font-weight:600;line-height:1}
@@ -317,6 +327,10 @@ ul.tight li{margin:2px 0}
       <p class="small muted" id="dataInfo" style="margin:10px 0 0"></p>
     </div>
     <div class="card">
+      <h2>图片来源</h2>
+      <p class="small muted" style="margin:0">动作示意图来自 free-exercise-db（github.com/yuhonas/free-exercise-db），公共领域授权。图里的器械和你店里的不一定完全一样，动作要领相同。</p>
+    </div>
+    <div class="card">
       <h2>清空所有记录</h2>
       <p class="small muted" style="margin:0 0 10px">会删掉这个浏览器里的所有记录，不能恢复。</p>
       <button class="btn ghost" id="wipeBtn" style="border-color:var(--bad);color:var(--bad)">清空记录</button>
@@ -372,6 +386,9 @@ const DAYS = {
   6:{name:"肩臂 ＋ 有氧", type:"train", ex:["reardelt","lateral3","facepull","armcurl","pushdown2"], cardio:{n:"パワーミルクライマー（爬楼机）或坡走", min:25}},
   0:{name:"完全休息", type:"rest", ex:[], cardio:null, note:"不去健身房，出门散步，步数照样走到8000"}
 };
+const CUES = {"bench": ["肩胛骨夹紧往下沉，双脚踩实地面", "杠铃放到胸口乳头下方的位置", "手肘和身体成约45°，不要向外张成90°"], "latpd": ["握距比肩宽一拳", "先沉肩，再把杠拉到锁骨上方", "身体微微后仰，不要用腰甩"], "incline": ["座椅调到把手和胸口上部同高", "推到手臂快伸直，不锁死手肘", "慢慢放回，约2秒"], "lowrow": ["胸口贴紧胸垫", "手肘往后拉过身体，夹紧后背停1秒", "全程不要耸肩"], "lateral": ["手肘微弯，抬到和肩膀同高", "用肩膀发力，不要甩身体", "慢慢放下"], "pushdown": ["大臂贴住身体不动", "压到底时把绳子向两边分开", "回到小臂和地面平行就停"], "squat": ["杠铃放在后背上方的斜方肌上", "脚比肩略宽，脚尖稍微外八", "蹲到大腿至少和地面平行，膝盖朝脚尖方向"], "rdl": ["膝盖微弯，然后固定不动", "屁股往后推，杠铃贴着腿下滑到小腿中段", "大腿后侧感到拉伸后再站起"], "legpress": ["双脚放在踏板中间，与肩同宽", "下放到膝盖约90°", "推起时膝盖不要锁死"], "legcurl": ["膝盖对准器械的转轴", "勾到底停1秒", "慢慢放回"], "calf": ["前脚掌踩在踏板下缘", "脚跟尽量往下放，再推到最高", "最高点停1秒"], "crunch": ["用腹肌把身体卷起来，不是用手拉", "呼气卷到底", "慢慢放回"], "shpress": ["座椅调到把手和肩膀同高", "推到头顶，手肘不锁死", "腰贴住靠背"], "latpd2": ["换V形把手或窄握", "拉到胸口上方，手肘往下往后", "挺胸"], "dbbench": ["哑铃先放大腿上，躺下时顺势带上来", "下放到哑铃和胸口同高", "推起时两只哑铃往中间靠"], "dbrow": ["一手一膝撑在凳子上，背部平直", "把哑铃拉向髋部，手肘贴身", "最高点停1秒"], "curl": ["大臂贴身不动", "举到最高点时掌心朝上", "不要晃身体借力"], "glute": ["上背靠在垫子上，脚跟踩实", "顶端髋部完全伸直，夹紧臀部停1秒", "下巴微收，不要拱腰"], "bss": ["后脚脚背搭在凳子上，前脚离凳约一大步", "垂直往下蹲，前腿膝盖不内扣", "用前脚脚跟发力站起"], "hack": ["背和臀部贴紧靠垫", "蹲到大腿和踏板平行", "膝盖和脚尖同方向"], "legext": ["膝盖对准转轴", "伸直到顶停1秒", "慢慢放回"], "backext": ["垫子卡在胯骨下方", "用臀部和下背把身体抬到和腿成一直线", "不要过度后仰"], "reardelt": ["面朝胸垫坐，把手调到最后面的位置", "手臂微弯，向后打开", "用后肩发力，不要耸肩"], "facepull": ["绳索调到额头高度", "把绳子拉向脸，两手往两边分开", "手肘高于手腕"], "armcurl": ["大臂贴紧垫子", "举到最高点停1秒", "慢慢放到手臂接近伸直"]};
+const IMG = {"lateral2": "lateral", "lateral3": "lateral", "legcurl2": "legcurl", "pushdown2": "pushdown"};
+const imgOf = id => IMG[id] || id;
 const DOW = ["周日","周一","周二","周三","周四","周五","周六"];
 
 /* ---------- Foods (per 100g unless unit 个/盒/包/勺) ---------- */
@@ -484,10 +501,12 @@ function renderTrain(){
     card.className = "card ex" + (sets.every(s=>s.done)?" done-ex":"");
     card.innerHTML = `
       <div class="ex-top">
+        <button class="ex-media" type="button" aria-label="放大${e.n}的动作图"><img src="img/${imgOf(id)}-0.jpg" alt="${e.n} 起始动作" loading="lazy"><img class="f2" src="img/${imgOf(id)}-1.jpg" alt="${e.n} 结束动作" loading="lazy"></button>
         <div class="ex-name"><h3>${e.n}</h3><div class="small muted">${e.jp}</div></div>
         <div class="ex-target"><div class="num">${sg.kg}<span class="small muted">kg${e.side?" /每侧":""}</span></div><div class="small muted">${e.sets}组 × ${e.lo===e.hi?e.hi:e.lo+"–"+e.hi}次</div></div>
       </div>
       <div class="hint ${sg.up?"up":""}">${esc(sg.text)}</div>
+      <details class="howto"><summary>动作要点</summary><ol>${(CUES[imgOf(id)]||[]).map(c=>`<li>${esc(c)}</li>`).join("")}</ol></details>
       ${e.note?`<div class="small muted">${esc(e.note)}</div>`:""}
       <div class="sets">
         <span class="h">组</span><span class="h">重量 kg</span><span class="h">次数</span><span class="h"></span>
@@ -521,6 +540,7 @@ $("exList").addEventListener("input", e=>{
   save();
 });
 $("exList").addEventListener("click", e=>{
+  const m = e.target.closest(".ex-media"); if (m){ m.closest(".ex").classList.toggle("zoom"); return; }
   const b = e.target.closest(".tick"); if (!b) return;
   const s = L(cur).sets[b.dataset.ex][+b.dataset.i];
   if (!s.done && (s.reps===""||s.reps==null)) s.reps = EX[b.dataset.ex].hi;
