@@ -70,6 +70,25 @@ label.f{display:flex;flex-direction:column;gap:3px;font-size:.8rem;color:var(--m
 .done-ex{opacity:.7}
 .progress{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 .progress i{display:block;height:100%;background:var(--accent)}
+/* week */
+.wkstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 8px;margin-top:10px}
+.wkstats div{min-width:0}
+.wkstats .v{font-family:var(--display);font-size:1.45rem;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.wkstats .v small{font-size:.8rem;color:var(--muted);font-weight:500;margin-left:2px}
+.wkdays{display:flex;flex-direction:column;gap:8px}
+.wkday{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.wkday.is-today{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.wkday.future{opacity:.6}
+.wkhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.wkhead b{font-weight:700}
+.wkhead .plan{font-size:.82rem;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.wkin{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.wkin label{display:flex;flex-direction:column;gap:2px;font-size:.7rem;color:var(--muted);min-width:0}
+.wkin input{padding:6px 2px;text-align:center}
+.wkin .calc{padding:7px 2px;text-align:center;border:1px dashed var(--line);border-radius:6px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.trainbtn{font:inherit;font-size:.8rem;cursor:pointer;border-radius:999px;padding:3px 10px;border:1px solid var(--line);background:transparent;color:var(--muted);white-space:nowrap}
+.trainbtn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.trainbtn.rest{cursor:default;border-style:dashed}
 /* food */
 .totals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .totals div{min-width:0}
@@ -118,7 +137,8 @@ ul.tight li{margin:2px 0}
     <button class="mini" id="nextDay" aria-label="后一天">›</button>
   </div>
   <nav class="tabs" role="tablist">
-    <button role="tab" data-tab="train" aria-selected="true">训练</button>
+    <button role="tab" data-tab="week" aria-selected="true">本周</button>
+    <button role="tab" data-tab="train" aria-selected="false">训练</button>
     <button role="tab" data-tab="food" aria-selected="false">饮食</button>
     <button role="tab" data-tab="body" aria-selected="false">体重</button>
     <button role="tab" data-tab="plan" aria-selected="false">计划</button>
@@ -128,7 +148,20 @@ ul.tight li{margin:2px 0}
 
 <main>
   <!-- TRAIN -->
-  <section class="view" id="v-train">
+  <!-- WEEK -->
+  <section class="view" id="v-week">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:baseline">
+        <h2 style="margin:0" id="wkTitle">本周</h2>
+        <span id="wkAdvice"></span>
+      </div>
+      <div class="wkstats" id="wkStats"></div>
+    </div>
+    <div class="wkdays" id="wkDays"></div>
+    <p class="small muted" style="margin:0">体重每天早上空腹称。热量和蛋白质填大概的数就行（目标：训练日 1950 kcal、休息日 1750 kcal，蛋白质 160g）；在「饮食」页逐样记录过的那天会自动算出来。</p>
+  </section>
+
+  <section class="view" id="v-train" hidden>
     <div class="card dayhead">
       <div class="row" style="justify-content:space-between">
         <div><span class="chip" id="trainChip">训练日</span></div>
@@ -581,6 +614,75 @@ function drawChart(ws){
   else o += `<text x="${W/2}" y="${H/2}" text-anchor="middle">每天早上称一次，这里会画出走势</text>`;
   $("chart").innerHTML = o;
 }
+/* ---------- Week view ---------- */
+const hasFoods = d => !!(S.logs[d] && S.logs[d].foods && S.logs[d].foods.length);
+const dayK = d => hasFoods(d) ? totals(d).k : (S.logs[d] ? S.logs[d].kcal ?? null : null);
+const dayP = d => hasFoods(d) ? totals(d).p : (S.logs[d] ? S.logs[d].protein ?? null : null);
+const setsDone = d => { const s = S.logs[d] && S.logs[d].sets; return s ? Object.values(s).reduce((a,x)=>a+x.filter(y=>y.done).length,0) : 0; };
+const trained = d => !!(S.logs[d] && (S.logs[d].trained || setsDone(d)>0));
+function weekAvgWeight(mon){ return avg([0,1,2,3,4,5,6].map(i=>S.logs[addDays(mon,i)]).filter(l=>l&&l.weight!=null).map(l=>l.weight)); }
+function renderWeek(){
+  const mon = mondayOf(cur), days = [0,1,2,3,4,5,6].map(i=>addDays(mon,i));
+  const end = parse(days[6]);
+  $("wkTitle").textContent = (mon===mondayOf(TODAY) ? "本周 " : "") + `${parse(mon).getMonth()+1}/${parse(mon).getDate()} – ${end.getMonth()+1}/${end.getDate()}`;
+  renderWeekStats(mon, days);
+  renderWeekDays(days);
+}
+function renderWeekStats(mon, days){
+  const w = weekAvgWeight(mon), pw = weekAvgWeight(addDays(mon,-7));
+  const delta = (w!=null && pw!=null) ? w-pw : null;
+  const ks = days.map(dayK).filter(v=>v!=null&&v>0), ps = days.map(dayP).filter(v=>v!=null&&v>0);
+  const st = days.map(d=>S.logs[d]&&S.logs[d].steps).filter(v=>v!=null);
+  const sl = days.map(d=>S.logs[d]&&S.logs[d].sleep).filter(v=>v!=null);
+  const planned = days.filter(d=>dayPlan(d).type==="train").length, done = days.filter(trained).length;
+  const stat = (label, v, unit) => `<div><div class="small muted">${label}</div><div class="v">${v}<small>${unit}</small></div></div>`;
+  $("wkStats").innerHTML =
+    stat("平均体重", w==null?"—":w.toFixed(1), "kg") +
+    stat("比上周", delta==null?"—":(delta>0?"+":"")+delta.toFixed(2), "kg") +
+    stat("训练", `${done}/${planned}`, "次") +
+    stat("平均热量", ks.length?Math.round(avg(ks)):"—", "kcal") +
+    stat("平均蛋白质", ps.length?Math.round(avg(ps)):"—", "g") +
+    stat("平均步数", st.length?Math.round(avg(st)).toLocaleString():"—", "") ;
+  let adv = "";
+  if (delta!=null){
+    adv = delta < -1 ? `<span class="pill warn">掉太快：每天加50g米饭</span>`
+        : delta > -0.4 ? `<span class="pill warn">偏慢，再看一周</span>`
+        : `<span class="pill ok">节奏正好</span>`;
+  }
+  $("wkAdvice").innerHTML = adv;
+}
+function renderWeekDays(days){
+  $("wkDays").innerHTML = days.map(d=>{
+    const l = S.logs[d] || {}, p = dayPlan(d), dt = parse(d), isT = p.type==="train";
+    const n = setsDone(d);
+    const kcalCell = hasFoods(d) ? `<div class="calc">${Math.round(totals(d).k)}</div>` : `<input type="number" inputmode="numeric" step="10" min="0" data-d="${d}" data-k="kcal" value="${l.kcal??""}">`;
+    const pCell = hasFoods(d) ? `<div class="calc">${Math.round(totals(d).p)}</div>` : `<input type="number" inputmode="numeric" step="1" min="0" data-d="${d}" data-k="protein" value="${l.protein??""}">`;
+    const tbtn = !isT && !l.trained && !n
+      ? `<button class="trainbtn" data-tr="${d}" aria-pressed="false">${p.cardio?"做了有氧？":"休息"}</button>`
+      : `<button class="trainbtn ${trained(d)?"on":""}" data-tr="${d}" aria-pressed="${trained(d)}">${trained(d)?"✓ 练了"+(n?` ${n}组`:""):"没练"}</button>`;
+    return `<div class="wkday ${d===TODAY?"is-today":""} ${d>TODAY?"future":""}">
+      <div class="wkhead"><b>${DOW[dt.getDay()]} <span class="num muted">${dt.getMonth()+1}/${dt.getDate()}</span></b><span class="plan">${esc(p.name)}</span>${tbtn}</div>
+      <div class="wkin">
+        <label>体重kg<input type="number" inputmode="decimal" step="0.1" min="40" max="150" data-d="${d}" data-k="weight" value="${l.weight??""}"></label>
+        <label>热量${kcalCell}</label>
+        <label>蛋白质g${pCell}</label>
+        <label>步数<input type="number" inputmode="numeric" step="100" min="0" data-d="${d}" data-k="steps" value="${l.steps??""}"></label>
+        <label>睡眠h<input type="number" inputmode="decimal" step="0.5" min="0" max="14" data-d="${d}" data-k="sleep" value="${l.sleep??""}"></label>
+      </div></div>`;
+  }).join("");
+}
+$("wkDays").addEventListener("input", e=>{
+  const t = e.target; if (!t.dataset.d) return;
+  L(t.dataset.d)[t.dataset.k] = num(t.value); save();
+});
+$("wkDays").addEventListener("change", e=>{ if (e.target.dataset.d){ const mon = mondayOf(cur); renderWeekStats(mon, [0,1,2,3,4,5,6].map(i=>addDays(mon,i))); } });
+$("wkDays").addEventListener("click", e=>{
+  const b = e.target.closest("[data-tr]"); if (!b) return;
+  const d = b.dataset.tr;
+  if (setsDone(d)>0){ cur = d; document.querySelector('[data-tab="train"]').click(); return; }
+  L(d).trained = !L(d).trained; save(); renderWeek();
+});
+
 function renderWeeks(){
   const g = {};
   Object.keys(S.logs).sort().forEach(d=>{ (g[mondayOf(d)] ||= []).push(d); });
@@ -589,9 +691,9 @@ function renderWeeks(){
   keys.forEach(k=>{
     const ds = g[k];
     const w = avg(ds.map(d=>S.logs[d].weight).filter(v=>v!=null));
-    const kc = avg(ds.map(d=>totals(d).k).filter(v=>v>0));
-    const pr = avg(ds.map(d=>totals(d).p).filter(v=>v>0));
-    const tr = ds.filter(d=>{ const s=S.logs[d].sets; return s && Object.values(s).some(a=>a.some(x=>x.done)); }).length;
+    const kc = avg(ds.map(dayK).filter(v=>v!=null && v>0));
+    const pr = avg(ds.map(dayP).filter(v=>v!=null && v>0));
+    const tr = ds.filter(trained).length;
     const delta = (w!=null&&prev!=null) ? w-prev : null;
     let adv = `<span class="pill muted">数据不足</span>`;
     if (delta!=null){
@@ -635,12 +737,12 @@ $("wipeBtn").addEventListener("click", e=>{
 });
 
 /* ---------- Shell ---------- */
-let tab = "train";
+let tab = "week";
 function renderAll(){
   const d = parse(cur);
   $("dayTitle").textContent = cur===TODAY ? "今天 · "+DOW[d.getDay()] : `${d.getMonth()+1}/${d.getDate()} ${DOW[d.getDay()]}`;
   $("date").value = cur;
-  ({train:renderTrain, food:renderFood, body:renderBody, plan:()=>{}, data:renderData})[tab]();
+  ({week:renderWeek, train:renderTrain, food:renderFood, body:renderBody, plan:()=>{}, data:renderData})[tab]();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click", ()=>{
   tab = b.dataset.tab;
@@ -649,8 +751,8 @@ document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",
   renderAll(); window.scrollTo(0,0);
 }));
 $("date").addEventListener("change", ()=>{ if ($("date").value){ cur = $("date").value; renderAll(); } });
-$("prevDay").addEventListener("click", ()=>{ cur = addDays(cur,-1); renderAll(); });
-$("nextDay").addEventListener("click", ()=>{ cur = addDays(cur,1); renderAll(); });
+$("prevDay").addEventListener("click", ()=>{ cur = addDays(cur, tab==="week"?-7:-1); renderAll(); });
+$("nextDay").addEventListener("click", ()=>{ cur = addDays(cur, tab==="week"?7:1); renderAll(); });
 renderAll();
 </script>
 </body>
