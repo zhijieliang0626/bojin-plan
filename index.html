@@ -183,7 +183,7 @@ ul.tight li{margin:2px 0}
       <div class="totals" id="totals"></div>
     </div>
     <div class="card">
-      <h2>按计划一键添加</h2>
+      <h2 id="menuTitle">今天的菜单</h2>
       <p class="small muted" style="margin:0 0 8px">点一下就加入今天的记录。实际吃的量不一样的话，加进去后可以改克数。</p>
       <div class="quick" id="quick"></div>
     </div>
@@ -254,16 +254,21 @@ ul.tight li{margin:2px 0}
         <dt>8:05</dt><dd>练前：饭团1个 ＋ 蛋白粉30g（兑水）。休息日只喝蛋白粉</dd>
         <dt>8:30</dt><dd>到健身房，热身5分钟</dd>
         <dt>8:35</dt><dd><b>力量训练约50分钟</b>，最后坡走5–10分钟</dd>
-        <dt>10:00</dt><dd>早餐：米饭150g、番茄炒蛋（鸡蛋2个＋西红柿100g，油控制在3g以内）、纳豆1盒、オイコス1个、味噌汤</dd>
-        <dt>13:30</dt><dd>午餐：米饭150g、鸡胸肉150g（生重）、炒小松菜150g＋青椒50g</dd>
-        <dt>16:30</dt><dd>加餐：サラダチキン1包</dd>
-        <dt>19:30</dt><dd>晚餐：米饭100g、猪里脊（ヒレ）120g、青梗菜150g、纳豆1盒、油5g</dd>
+        <dt>10:00</dt><dd>早餐（练完回家后）</dd>
+        <dt>13:30</dt><dd>午餐</dd>
+        <dt>16:30</dt><dd>加餐</dd>
+        <dt>19:30</dt><dd>晚餐</dd>
       </dl>
-      <p class="small muted" style="margin:10px 0 0">训练日约 1950 kcal / 蛋白质约 170g；休息日约 1750 kcal。小松菜、青梗菜、青椒、西红柿热量都很低，想多吃可以随便加。</p>
+      <p class="small muted" style="margin:10px 0 0">每天吃什么见下面的「一周菜单」。训练日约 1950 kcal、休息日约 1750 kcal，蛋白质每天 150–170g。</p>
       <p class="small muted" style="margin:6px 0 0">买猪肉认准「ヒレ」：每100g约118kcal。「ロース」虽然也常被叫作里脊，但带肥肉的每100g约248kcal，热量是ヒレ的两倍。买ロース的话，把肥边切掉。</p>
     </div>
     <div class="card">
-      <h2>一周安排</h2>
+      <h2>一周菜单</h2>
+      <p class="small muted" style="margin:0 0 8px">重量都是用秤称的：米饭是熟重，肉和鱼是生重。小松菜、青梗菜、青椒、西红柿、白菜热量很低，想多吃可以随便加。酱油、ポン酢、生姜、蒜可以正常用，少放糖和味醂。</p>
+      <div id="menuWeek" class="view" style="gap:6px"></div>
+    </div>
+    <div class="card">
+      <h2>一周训练</h2>
       <div class="week" id="weekPlan"></div>
     </div>
     <div class="card">
@@ -393,6 +398,16 @@ const FOODS = [
   {n:"食用油", u:"g", k:900, p:0, f:100, c:0},
   {n:"荞麦面（熟）", u:"g", k:130, p:4.8, f:1.0, c:26.0},
   {n:"乌冬面（熟）", u:"g", k:95, p:2.6, f:0.4, c:21.6},
+  {n:"洋葱 玉ねぎ", u:"g", k:33, p:1.0, f:0.1, c:8.4},
+  {n:"卷心菜 キャベツ", u:"g", k:21, p:1.3, f:0.2, c:5.2},
+  {n:"黄瓜 きゅうり", u:"g", k:13, p:1.0, f:0.1, c:3.0},
+  {n:"蟹味菇 しめじ", u:"g", k:22, p:2.7, f:0.5, c:4.8},
+  {n:"白菜", u:"g", k:13, p:0.8, f:0.1, c:3.2},
+  {n:"鳕鱼 たら（生）", u:"g", k:72, p:17.6, f:0.2, c:0.1},
+  {n:"虾仁 えび（生）", u:"g", k:77, p:18.4, f:0.3, c:0.3},
+  {n:"冷冻乌冬 1玉", u:"个", k:190, p:5.2, f:0.8, c:43.0},
+  {n:"吐司 6枚切", u:"片", k:149, p:5.3, f:2.5, c:27.8},
+  {n:"外食定食（米饭少盛）", u:"份", k:700, p:32, f:22, c:85},
   {n:"鸡蛋", u:"个", k:71, p:6.1, f:5.1, c:0.2},
   {n:"纳豆", u:"盒", k:86, p:7.4, f:4.5, c:5.4},
   {n:"オイコス 希腊酸奶", u:"个", k:92, p:12.0, f:0, c:11.0},
@@ -401,14 +416,7 @@ const FOODS = [
   {n:"蛋白粉 30g", u:"勺", k:120, p:23.0, f:2.0, c:3.0},
   {n:"味噌汤", u:"碗", k:40, p:3.0, f:1.2, c:4.5}
 ];
-const MEALS = [
-  {n:"练前：饭团＋蛋白粉", items:[["便利店饭团",1],["蛋白粉 30g",1]]},
-  {n:"休息日早起：蛋白粉", items:[["蛋白粉 30g",1]]},
-  {n:"早餐", items:[["白米饭（熟）",150],["鸡蛋",2],["西红柿 トマト",100],["食用油",3],["纳豆",1],["オイコス 希腊酸奶",1],["味噌汤",1]]},
-  {n:"午餐", items:[["白米饭（熟）",150],["鸡胸肉 去皮（生）",150],["小松菜",150],["青椒 ピーマン",50],["食用油",3]]},
-  {n:"下午加餐", items:[["サラダチキン",1]]},
-  {n:"晚餐", items:[["白米饭（熟）",100],["猪里脊 豚ヒレ（生）",120],["青梗菜 チンゲン菜",150],["纳豆",1],["食用油",5]]}
-];
+const MENU = {"1": [{"slot": "练前", "n": "饭团＋蛋白粉", "items": [["便利店饭团", 1], ["蛋白粉 30g", 1]]}, {"slot": "早餐", "n": "番茄炒蛋 ＋ 纳豆饭", "items": [["白米饭（熟）", 150], ["鸡蛋", 2], ["西红柿 トマト", 150], ["食用油", 3], ["纳豆", 1], ["味噌汤", 1]]}, {"slot": "午餐", "n": "青椒洋葱炒鸡胸", "items": [["白米饭（熟）", 150], ["鸡胸肉 去皮（生）", 180], ["青椒 ピーマン", 80], ["洋葱 玉ねぎ", 50], ["食用油", 5]]}, {"slot": "加餐", "n": "希腊酸奶", "items": [["オイコス 希腊酸奶", 1]]}, {"slot": "晚餐", "n": "猪里脊炒小松菜 ＋ 凉拌豆腐", "items": [["白米饭（熟）", 130], ["猪里脊 豚ヒレ（生）", 120], ["小松菜", 150], ["食用油", 5], ["木棉豆腐", 150]]}], "2": [{"slot": "练前", "n": "饭团＋蛋白粉", "items": [["便利店饭团", 1], ["蛋白粉 30g", 1]]}, {"slot": "早餐", "n": "纳豆鸡蛋盖饭", "items": [["白米饭（熟）", 150], ["纳豆", 1], ["鸡蛋", 2], ["西红柿 トマト", 100], ["味噌汤", 1], ["オイコス 希腊酸奶", 1]]}, {"slot": "午餐", "n": "烤三文鱼定食", "items": [["白米饭（熟）", 150], ["三文鱼 鮭（生）", 120], ["小松菜", 150], ["味噌汤", 1]]}, {"slot": "加餐", "n": "沙拉鸡", "items": [["サラダチキン", 1]]}, {"slot": "晚餐", "n": "番茄炖猪里脊 ＋ 炒青梗菜", "items": [["白米饭（熟）", 130], ["猪里脊 豚ヒレ（生）", 140], ["西红柿 トマト", 150], ["洋葱 玉ねぎ", 50], ["青梗菜 チンゲン菜", 150], ["食用油", 5]]}], "3": [{"slot": "起床", "n": "蛋白粉", "items": [["蛋白粉 30g", 1]]}, {"slot": "早餐", "n": "煎蛋 ＋ 纳豆饭 ＋ 牛奶", "items": [["白米饭（熟）", 150], ["鸡蛋", 2], ["食用油", 3], ["纳豆", 1], ["西红柿 トマト", 100], ["牛奶", 200]]}, {"slot": "午餐", "n": "鸡肉蔬菜乌冬", "items": [["冷冻乌冬 1玉", 1], ["鸡胸肉 去皮（生）", 150], ["小松菜", 100], ["蟹味菇 しめじ", 50]]}, {"slot": "加餐", "n": "希腊酸奶", "items": [["オイコス 希腊酸奶", 1]]}, {"slot": "晚餐", "n": "鳕鱼豆腐锅", "items": [["白米饭（熟）", 150], ["鳕鱼 たら（生）", 150], ["木棉豆腐", 150], ["白菜", 200], ["青梗菜 チンゲン菜", 100]]}], "4": [{"slot": "练前", "n": "饭团＋蛋白粉", "items": [["便利店饭团", 1], ["蛋白粉 30g", 1]]}, {"slot": "早餐", "n": "青椒炒蛋 ＋ 纳豆饭", "items": [["白米饭（熟）", 150], ["鸡蛋", 2], ["青椒 ピーマン", 80], ["食用油", 3], ["纳豆", 1], ["オイコス 希腊酸奶", 1]]}, {"slot": "午餐", "n": "棒棒鸡（蒸鸡胸拌黄瓜）", "items": [["白米饭（熟）", 150], ["鸡胸肉 去皮（生）", 150], ["黄瓜 きゅうり", 100], ["西红柿 トマト", 100]]}, {"slot": "加餐", "n": "沙拉鸡", "items": [["サラダチキン", 1]]}, {"slot": "晚餐", "n": "青椒牛肉丝 ＋ 番茄蛋花汤", "items": [["白米饭（熟）", 130], ["瘦牛肉 牛もも赤身（生）", 120], ["青椒 ピーマン", 80], ["洋葱 玉ねぎ", 50], ["食用油", 5], ["鸡蛋", 1], ["西红柿 トマト", 100]]}], "5": [{"slot": "练前", "n": "饭团＋蛋白粉", "items": [["便利店饭团", 1], ["蛋白粉 30g", 1]]}, {"slot": "早餐", "n": "燕麦牛奶 ＋ 水煮蛋", "items": [["燕麦 オートミール", 50], ["牛奶", 200], ["鸡蛋", 2], ["香蕉（去皮）", 100]]}, {"slot": "午餐", "n": "便利店：饭团＋沙拉鸡＋沙拉＋水煮蛋", "items": [["便利店饭团", 1], ["サラダチキン", 1], ["卷心菜 キャベツ", 100], ["鸡蛋", 1], ["味噌汤", 1]]}, {"slot": "加餐", "n": "希腊酸奶", "items": [["オイコス 希腊酸奶", 1]]}, {"slot": "晚餐", "n": "虾仁炒蛋 ＋ 蒜炒小松菜", "items": [["白米饭（熟）", 150], ["虾仁 えび（生）", 180], ["鸡蛋", 1], ["小松菜", 150], ["食用油", 5], ["纳豆", 1]]}], "6": [{"slot": "练前", "n": "饭团＋蛋白粉", "items": [["便利店饭团", 1], ["蛋白粉 30g", 1]]}, {"slot": "早餐", "n": "日式早餐", "items": [["白米饭（熟）", 150], ["鸡蛋", 2], ["纳豆", 1], ["西红柿 トマト", 100], ["味噌汤", 1]]}, {"slot": "午餐", "n": "生姜烧猪里脊 ＋ 卷心菜丝", "items": [["白米饭（熟）", 150], ["猪里脊 豚ヒレ（生）", 150], ["洋葱 玉ねぎ", 50], ["卷心菜 キャベツ", 100], ["食用油", 5]]}, {"slot": "加餐", "n": "沙拉鸡", "items": [["サラダチキン", 1]]}, {"slot": "晚餐", "n": "鸡胸豆腐蔬菜锅（蘸ポン酢）", "items": [["白米饭（熟）", 130], ["鸡胸肉 去皮（生）", 150], ["木棉豆腐", 150], ["青梗菜 チンゲン菜", 150], ["蟹味菇 しめじ", 100]]}], "0": [{"slot": "起床", "n": "蛋白粉", "items": [["蛋白粉 30g", 1]]}, {"slot": "早餐", "n": "吐司 ＋ 炒蛋 ＋ 牛奶", "items": [["吐司 6枚切", 1], ["鸡蛋", 2], ["食用油", 3], ["牛奶", 200], ["西红柿 トマト", 100]]}, {"slot": "午餐", "n": "外食：定食（米饭少盛）", "items": [["外食定食（米饭少盛）", 1]]}, {"slot": "加餐", "n": "希腊酸奶＋沙拉鸡", "items": [["オイコス 希腊酸奶", 1], ["サラダチキン", 1]]}, {"slot": "晚餐", "n": "鲭鱼罐头拌豆腐 ＋ 小松菜", "items": [["白米饭（熟）", 60], ["鲭鱼罐头 さば水煮", 100], ["木棉豆腐", 100], ["小松菜", 150]]}]};
 
 /* ---------- Storage ---------- */
 const KEY = "bojin-v1";
@@ -533,7 +541,9 @@ function renderFood(){
     return `<div><div class="small muted">${label}</div><div class="num" style="font-size:1.4rem;font-weight:600">${Math.round(v)}<span class="small muted"> / ${goal}${unit}</span></div><div class="bar"><i class="${over?"over":""}" style="width:${pct}%"></i></div></div>`; };
   $("totals").innerHTML = cell("热量",t.k,tg.kcal,"") + cell("蛋白质",t.p,tg.p,"g") + cell("脂肪",t.f,tg.f,"g") + cell("碳水",t.c,tg.c,"g");
   const used = new Set(L(cur).meals||[]);
-  $("quick").innerHTML = MEALS.map((m,i)=>`<button data-meal="${i}" class="${used.has(m.n)?"used":""}">${used.has(m.n)?"✓ ":""}${esc(m.n)}</button>`).join("");
+  const today = MENU[parse(cur).getDay()];
+  $("menuTitle").textContent = DOW[parse(cur).getDay()] + "的菜单";
+  $("quick").innerHTML = today.map((m,i)=>{ const key=m.slot+"·"+m.n, u=used.has(key); return `<button data-meal="${i}" class="${u?"used":""}">${u?"✓ ":""}${esc(m.slot)}：${esc(m.n)}</button>`; }).join("");
   const fs = L(cur).foods || [];
   $("foodList").innerHTML = fs.length ? fs.map((x,i)=>`
     <div class="food"><div class="n"><div>${esc(x.n)}</div><div class="small muted">${Math.round(x.k)} kcal · 蛋白质 ${r1(x.p)}g</div></div>
@@ -565,8 +575,8 @@ $("addCustom").addEventListener("click", ()=>{
 });
 $("quick").addEventListener("click", e=>{
   const b = e.target.closest("[data-meal]"); if (!b) return;
-  const m = MEALS[+b.dataset.meal]; m.items.forEach(([n,q])=>addItem(n,q));
-  (L(cur).meals ||= []).push(m.n); save(); renderFood(); toast(m.n+" 已添加");
+  const m = MENU[parse(cur).getDay()][+b.dataset.meal]; m.items.forEach(([n,q])=>addItem(n,q));
+  (L(cur).meals ||= []).push(m.slot+"·"+m.n); save(); renderFood(); toast(m.slot+" 已添加");
 });
 $("foodList").addEventListener("input", e=>{
   const t = e.target; if (t.dataset.fi==null) return;
@@ -712,6 +722,14 @@ function renderWeeks(){
 $("weekPlan").innerHTML = [1,2,3,4,5,6,0].map(i=>{ const p=DAYS[i];
   const list = p.ex.map(id=>{const e=EX[id]; return `${e.n} ${e.sets}×${e.lo===e.hi?e.hi:e.lo+"–"+e.hi} @${e.kg}kg${e.side?"/侧":""}`;}).join("、");
   return `<b>${DOW[i]}</b><div><b>${p.name}</b><div class="small muted">${list || esc(p.note||"")}${p.cardio?`${list?"；":""}${esc(p.cardio.n)} ${p.cardio.min}分钟`:""}</div></div>`; }).join("");
+
+/* ---------- Week menu ---------- */
+function menuTotals(day){ let k=0,p=0; MENU[day].forEach(m=>m.items.forEach(([n,q])=>{ const f=findFood(n); if(f){const v=calc(f,q); k+=v.k; p+=v.p;} })); return {k,p}; }
+const unitTxt = (n,q) => { const f=findFood(n); return f.u==="g" ? `${q}g` : `${q}${f.u}`; };
+const shortName = n => n.replace(/ [^ ]*$/,"").replace(/（.*?）/g,"");
+$("menuWeek").innerHTML = [1,2,3,4,5,6,0].map(d=>{ const t=menuTotals(d);
+  return `<details ${d===new Date().getDay()?"open":""}><summary style="cursor:pointer;padding:4px 0"><b>${DOW[d]}</b> <span class="small muted">${esc(DAYS[d].name)} · ${Math.round(t.k)} kcal · 蛋白质 ${Math.round(t.p)}g</span></summary>
+  <dl class="tt" style="margin:4px 0 8px">${MENU[d].map(m=>`<dt style="font-family:var(--body);font-weight:500;font-size:.85rem">${esc(m.slot)}</dt><dd><b>${esc(m.n)}</b><div class="small muted">${m.items.map(([n,q])=>esc(shortName(n))+" "+unitTxt(n,q)).join("、")}</div></dd>`).join("")}</dl></details>`; }).join("");
 
 /* ---------- Data view ---------- */
 function renderData(){
