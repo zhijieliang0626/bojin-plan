@@ -383,20 +383,28 @@ const EX = {
   lateral3:{n:"哑铃侧平举", jp:"ダンベル", sets:4, lo:15, hi:15, kg:6, inc:1, side:true},
   facepull:{n:"绳索面拉", jp:"デュアルアジャスタブルプーリー", sets:3, lo:15, hi:15, kg:10, inc:2.5},
   armcurl: {n:"器械弯举", jp:"シーテッドアームカール", sets:3, lo:12, hi:12, kg:20, inc:2.5},
-  pushdown2:{n:"绳索下压", jp:"デュアルアジャスタブルプーリー", sets:3, lo:12, hi:12, kg:15, inc:2.5}
+  pushdown2:{n:"绳索下压", jp:"デュアルアジャスタブルプーリー", sets:3, lo:12, hi:12, kg:15, inc:2.5},
+  pecfly:  {n:"蝴蝶机夹胸", jp:"ペックフライ／リアデルト", sets:3, lo:12, hi:15, kg:30, inc:2.5, note:"和反向飞鸟是同一台器械，面朝外坐"},
+  inclinedb:{n:"上斜哑铃卧推", jp:"ダンベル＋アジャスタブルベンチ", sets:3, lo:8, hi:10, kg:16, inc:2, side:true, note:"凳子调到30°左右"},
+  smithrow:{n:"史密斯俯身划船", jp:"スミスマシン", sets:3, lo:8, hi:10, kg:40, inc:5, note:"填总重量（含杠）。杠本身的重量看器械上的标示"},
+  cablecrunch:{n:"绳索跪姿卷腹", jp:"デュアルアジャスタブルプーリー", sets:3, lo:12, hi:15, kg:25, inc:2.5},
+  cablecrunch2:{n:"绳索跪姿卷腹", jp:"デュアルアジャスタブルプーリー", sets:3, lo:15, hi:15, kg:25, inc:2.5},
+  legraise:{n:"悬垂举腿", jp:"パワーラックの懸垂バー", sets:3, lo:10, hi:15, kg:0, inc:0, bw:true, note:"太难就先屈膝抬腿"},
+  legraise2:{n:"悬垂举腿", jp:"パワーラックの懸垂バー", sets:3, lo:10, hi:15, kg:0, inc:0, bw:true, note:"太难就先屈膝抬腿"},
+  plank:   {n:"平板支撑", jp:"マット", sets:3, lo:45, hi:60, kg:0, inc:0, bw:true, unit:"秒"}
 };
 // getDay(): 0=日 1=一 ...
 const DAYS = {
-  1:{name:"上肢A · 推", type:"train", ex:["bench","latpd","incline","lowrow","lateral","pushdown"], cardio:{n:"跑步机坡走（坡度10%，5km/h）", min:8}},
-  2:{name:"下肢A", type:"train", ex:["squat","rdl","legpress","legcurl","calf","crunch"], cardio:{n:"跑步机坡走", min:5}},
-  3:{name:"主动恢复", type:"rest", ex:[], cardio:{n:"跑步机坡走（坡度10–12%，5km/h）或パワーミルクライマー", min:35}, note:"心率保持在能说话但有点喘的程度，练完拉伸10分钟"},
-  4:{name:"上肢B · 拉", type:"train", ex:["shpress","latpd2","dbbench","dbrow","lateral2","curl"], cardio:{n:"跑步机坡走", min:8}},
-  5:{name:"下肢B", type:"train", ex:["glute","bss","hack","legext","legcurl2","backext"], cardio:{n:"跑步机坡走", min:5}},
-  6:{name:"肩臂 ＋ 有氧", type:"train", ex:["reardelt","lateral3","facepull","armcurl","pushdown2"], cardio:{n:"パワーミルクライマー（爬楼机）或坡走", min:25}},
+  1:{name:"胸 ＋ 三头 ＋ 腹", type:"train", ex:["bench","incline","pecfly","lateral","pushdown","cablecrunch"], cardio:{n:"跑步机坡走（坡度10%，5km/h）", min:8}},
+  2:{name:"背 ＋ 二头 ＋ 腹", type:"train", ex:["latpd","lowrow","dbrow","facepull","curl","legraise"], cardio:{n:"跑步机坡走", min:8}},
+  3:{name:"有氧 ＋ 腹", type:"rest", ex:["crunch","plank"], cardio:{n:"跑步机坡走（坡度10–12%，5km/h）或パワーミルクライマー", min:30}, note:"心率保持在能说话但有点喘的程度，最后做腹肌和拉伸"},
+  4:{name:"肩 ＋ 上胸 ＋ 手臂", type:"train", ex:["shpress","inclinedb","lateral3","reardelt","armcurl","pushdown2"], cardio:{n:"跑步机坡走", min:8}},
+  5:{name:"背 ＋ 胸 ＋ 腹", type:"train", ex:["latpd2","smithrow","dbbench","backext","cablecrunch2","legraise2"], cardio:{n:"跑步机坡走", min:5}},
+  6:{name:"腿", type:"train", ex:["squat","rdl","legpress","legcurl","legext","calf"], cardio:{n:"跑步机坡走", min:5}, note:"一周只练这一次腿，深蹲和罗马尼亚硬拉认真做"},
   0:{name:"完全休息", type:"rest", ex:[], cardio:null, note:"不去健身房，出门散步，步数照样走到8000"}
 };
-const CUES = {"bench": ["肩胛骨夹紧往下沉，双脚踩实地面", "杠铃放到胸口乳头下方的位置", "手肘和身体成约45°，不要向外张成90°"], "latpd": ["握距比肩宽一拳", "先沉肩，再把杠拉到锁骨上方", "身体微微后仰，不要用腰甩"], "incline": ["座椅调到把手和胸口上部同高", "推到手臂快伸直，不锁死手肘", "慢慢放回，约2秒"], "lowrow": ["胸口贴紧胸垫", "手肘往后拉过身体，夹紧后背停1秒", "全程不要耸肩"], "lateral": ["手肘微弯，抬到和肩膀同高", "用肩膀发力，不要甩身体", "慢慢放下"], "pushdown": ["大臂贴住身体不动", "压到底时把绳子向两边分开", "回到小臂和地面平行就停"], "squat": ["杠铃放在后背上方的斜方肌上", "脚比肩略宽，脚尖稍微外八", "蹲到大腿至少和地面平行，膝盖朝脚尖方向"], "rdl": ["膝盖微弯，然后固定不动", "屁股往后推，杠铃贴着腿下滑到小腿中段", "大腿后侧感到拉伸后再站起"], "legpress": ["双脚放在踏板中间，与肩同宽", "下放到膝盖约90°", "推起时膝盖不要锁死"], "legcurl": ["膝盖对准器械的转轴", "勾到底停1秒", "慢慢放回"], "calf": ["前脚掌踩在踏板下缘", "脚跟尽量往下放，再推到最高", "最高点停1秒"], "crunch": ["用腹肌把身体卷起来，不是用手拉", "呼气卷到底", "慢慢放回"], "shpress": ["座椅调到把手和肩膀同高", "推到头顶，手肘不锁死", "腰贴住靠背"], "latpd2": ["换V形把手或窄握", "拉到胸口上方，手肘往下往后", "挺胸"], "dbbench": ["哑铃先放大腿上，躺下时顺势带上来", "下放到哑铃和胸口同高", "推起时两只哑铃往中间靠"], "dbrow": ["一手一膝撑在凳子上，背部平直", "把哑铃拉向髋部，手肘贴身", "最高点停1秒"], "curl": ["大臂贴身不动", "举到最高点时掌心朝上", "不要晃身体借力"], "glute": ["上背靠在垫子上，脚跟踩实", "顶端髋部完全伸直，夹紧臀部停1秒", "下巴微收，不要拱腰"], "bss": ["后脚脚背搭在凳子上，前脚离凳约一大步", "垂直往下蹲，前腿膝盖不内扣", "用前脚脚跟发力站起"], "hack": ["背和臀部贴紧靠垫", "蹲到大腿和踏板平行", "膝盖和脚尖同方向"], "legext": ["膝盖对准转轴", "伸直到顶停1秒", "慢慢放回"], "backext": ["垫子卡在胯骨下方", "用臀部和下背把身体抬到和腿成一直线", "不要过度后仰"], "reardelt": ["面朝胸垫坐，把手调到最后面的位置", "手臂微弯，向后打开", "用后肩发力，不要耸肩"], "facepull": ["绳索调到额头高度", "把绳子拉向脸，两手往两边分开", "手肘高于手腕"], "armcurl": ["大臂贴紧垫子", "举到最高点停1秒", "慢慢放到手臂接近伸直"]};
-const IMG = {"lateral2": "lateral", "lateral3": "lateral", "legcurl2": "legcurl", "pushdown2": "pushdown"};
+const CUES = {"bench": ["肩胛骨夹紧往下沉，双脚踩实地面", "杠铃放到胸口乳头下方的位置", "手肘和身体成约45°，不要向外张成90°"], "latpd": ["握距比肩宽一拳", "先沉肩，再把杠拉到锁骨上方", "身体微微后仰，不要用腰甩"], "incline": ["座椅调到把手和胸口上部同高", "推到手臂快伸直，不锁死手肘", "慢慢放回，约2秒"], "lowrow": ["胸口贴紧胸垫", "手肘往后拉过身体，夹紧后背停1秒", "全程不要耸肩"], "lateral": ["手肘微弯，抬到和肩膀同高", "用肩膀发力，不要甩身体", "慢慢放下"], "pushdown": ["大臂贴住身体不动", "压到底时把绳子向两边分开", "回到小臂和地面平行就停"], "squat": ["杠铃放在后背上方的斜方肌上", "脚比肩略宽，脚尖稍微外八", "蹲到大腿至少和地面平行，膝盖朝脚尖方向"], "rdl": ["膝盖微弯，然后固定不动", "屁股往后推，杠铃贴着腿下滑到小腿中段", "大腿后侧感到拉伸后再站起"], "legpress": ["双脚放在踏板中间，与肩同宽", "下放到膝盖约90°", "推起时膝盖不要锁死"], "legcurl": ["膝盖对准器械的转轴", "勾到底停1秒", "慢慢放回"], "calf": ["前脚掌踩在踏板下缘", "脚跟尽量往下放，再推到最高", "最高点停1秒"], "crunch": ["用腹肌把身体卷起来，不是用手拉", "呼气卷到底", "慢慢放回"], "shpress": ["座椅调到把手和肩膀同高", "推到头顶，手肘不锁死", "腰贴住靠背"], "latpd2": ["换V形把手或窄握", "拉到胸口上方，手肘往下往后", "挺胸"], "dbbench": ["哑铃先放大腿上，躺下时顺势带上来", "下放到哑铃和胸口同高", "推起时两只哑铃往中间靠"], "dbrow": ["一手一膝撑在凳子上，背部平直", "把哑铃拉向髋部，手肘贴身", "最高点停1秒"], "curl": ["大臂贴身不动", "举到最高点时掌心朝上", "不要晃身体借力"], "glute": ["上背靠在垫子上，脚跟踩实", "顶端髋部完全伸直，夹紧臀部停1秒", "下巴微收，不要拱腰"], "bss": ["后脚脚背搭在凳子上，前脚离凳约一大步", "垂直往下蹲，前腿膝盖不内扣", "用前脚脚跟发力站起"], "hack": ["背和臀部贴紧靠垫", "蹲到大腿和踏板平行", "膝盖和脚尖同方向"], "legext": ["膝盖对准转轴", "伸直到顶停1秒", "慢慢放回"], "backext": ["垫子卡在胯骨下方", "用臀部和下背把身体抬到和腿成一直线", "不要过度后仰"], "reardelt": ["面朝胸垫坐，把手调到最后面的位置", "手臂微弯，向后打开", "用后肩发力，不要耸肩"], "facepull": ["绳索调到额头高度", "把绳子拉向脸，两手往两边分开", "手肘高于手腕"], "armcurl": ["大臂贴紧垫子", "举到最高点停1秒", "慢慢放到手臂接近伸直"], "pecfly": ["座椅调到把手和胸口同高", "手臂微弯，像抱大树一样往中间合", "合拢时夹紧胸部停1秒"], "inclinedb": ["凳子调到30°左右", "哑铃下放到胸口上部两侧", "推起时两只哑铃往中间靠，不要碰撞"], "smithrow": ["膝盖微弯，上身前倾约45°，背部挺直", "把杠拉到肚脐位置", "手肘贴身往后拉，夹紧后背"], "cablecrunch": ["跪在绳索机前，双手握绳放在头两侧", "用腹肌把上身往下卷，手肘朝膝盖", "髋部不动，不要用手往下拉"], "legraise": ["双手抓杠，身体不要晃", "腿抬到和地面平行或更高", "慢慢放下，控制住不甩"], "plank": ["手肘在肩膀正下方", "头、背、臀、脚跟成一条直线", "收紧腹部和臀部，正常呼吸"]};
+const IMG = {"lateral2": "lateral", "lateral3": "lateral", "legcurl2": "legcurl", "pushdown2": "pushdown", "cablecrunch2": "cablecrunch", "legraise2": "legraise"};
 const imgOf = id => IMG[id] || id;
 const DOW = ["周日","周一","周二","周三","周四","周五","周六"];
 
@@ -517,6 +525,7 @@ function lastSession(exId, before){
 }
 function suggest(exId, date){
   const e = EX[exId], last = lastSession(exId, date);
+  if (e.bw) return {kg:0, text: last ? `上次 ${last.date.slice(5)}：${last.sets.map(x=>num(x.reps)??0).join("/")}${e.unit||"次"} → 今天每组争取再多一点` : `自重动作：每组做到${e.hi}${e.unit||"次"}后，下次可以抱一个杠片或放慢速度`, up:false};
   if (!last) return {kg:e.kg, text:"第一次做：先用这个试探重量，按感觉调整", up:false};
   const kgs = last.sets.map(x=>num(x.kg)).filter(v=>v!=null);
   const lastKg = kgs.length ? Math.max(...kgs) : e.kg;
@@ -547,13 +556,13 @@ function renderTrain(){
       <div class="ex-top">
         <button class="ex-media" type="button" aria-label="放大${e.n}的动作图"><img src="img/${imgOf(id)}-0.jpg" alt="${e.n} 起始动作" loading="lazy"><img class="f2" src="img/${imgOf(id)}-1.jpg" alt="${e.n} 结束动作" loading="lazy"></button>
         <div class="ex-name"><h3>${e.n}</h3><div class="small muted">${e.jp}</div></div>
-        <div class="ex-target"><div class="num">${sg.kg}<span class="small muted">kg${e.side?" /每侧":""}</span></div><div class="small muted">${e.sets}组 × ${e.lo===e.hi?e.hi:e.lo+"–"+e.hi}次</div></div>
+        <div class="ex-target"><div class="num">${(e.bw||!sg.kg)?"自重":sg.kg}<span class="small muted">${(e.bw||!sg.kg)?"":"kg"}${e.side?" /每侧":""}</span></div><div class="small muted">${e.sets}组 × ${e.lo===e.hi?e.hi:e.lo+"–"+e.hi}${e.unit||"次"}</div></div>
       </div>
       <div class="hint ${sg.up?"up":""}">${esc(sg.text)}</div>
       <details class="howto"><summary>动作要点</summary><ol>${(CUES[imgOf(id)]||[]).map(c=>`<li>${esc(c)}</li>`).join("")}</ol></details>
       ${e.note?`<div class="small muted">${esc(e.note)}</div>`:""}
       <div class="sets">
-        <span class="h">组</span><span class="h">重量 kg</span><span class="h">次数</span><span class="h"></span>
+        <span class="h">组</span><span class="h">重量 kg</span><span class="h">${e.unit==="秒"?"秒数":"次数"}</span><span class="h"></span>
         ${sets.map((s,i)=>`
           <span class="setno">${i+1}</span>
           <input type="number" inputmode="decimal" step="0.5" min="0" value="${s.kg??""}" data-ex="${id}" data-i="${i}" data-k="kg" aria-label="${e.n} 第${i+1}组重量">
@@ -786,7 +795,7 @@ function renderWeeks(){
 
 /* ---------- Plan view ---------- */
 $("weekPlan").innerHTML = [1,2,3,4,5,6,0].map(i=>{ const p=DAYS[i];
-  const list = p.ex.map(id=>{const e=EX[id]; return `${e.n} ${e.sets}×${e.lo===e.hi?e.hi:e.lo+"–"+e.hi} @${e.kg}kg${e.side?"/侧":""}`;}).join("、");
+  const list = p.ex.map(id=>{const e=EX[id]; return `${e.n} ${e.sets}×${e.lo===e.hi?e.hi:e.lo+"–"+e.hi}${e.unit||""} ${(e.bw||!e.kg)?"自重":"@"+e.kg+"kg"+(e.side?"/侧":"")}`;}).join("、");
   return `<b>${DOW[i]}</b><div><b>${p.name}</b><div class="small muted">${list || esc(p.note||"")}${p.cardio?`${list?"；":""}${esc(p.cardio.n)} ${p.cardio.min}分钟`:""}</div></div>`; }).join("");
 
 /* ---------- Week menu ---------- */
