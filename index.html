@@ -17,10 +17,14 @@
   --body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Hiragino Sans",sans-serif;
   color-scheme:light;
 }
-@media (prefers-color-scheme: dark){:root{
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f1412; --surface:#19201d; --ink:#e6eee9; --muted:#97a69f; --line:#2b3530;
   --accent:#5cc4a6; --accent-ink:#0f1412; --accent-soft:#1d3830; --target:#e4a058;
   --good:#5fcf8a; --warn:#e7b04a; --bad:#ef7a6e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1412; --surface:#19201d; --ink:#e6eee9; --muted:#97a69f; --line:#2b3530;
+  --accent:#5cc4a6; --accent-ink:#0f1412; --accent-soft:#1d3830; --target:#e4a058;
+  --good:#5fcf8a; --warn:#e7b04a; --bad:#ef7a6e; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
@@ -30,6 +34,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .daterow{display:flex;align-items:center;gap:8px}
 .daterow h1{font-family:var(--display);font-size:1.45rem;font-weight:700;margin:0;flex:1;line-height:1.1;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .daterow input{width:auto}
+.syncdot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--line)}
+.syncdot[data-s="synced"]{background:var(--good)}
+.syncdot[data-s="loading"]{background:var(--warn)}
+.syncdot[data-s="error"]{background:var(--bad)}
 .tabs{display:flex;gap:2px;margin-top:8px;overflow-x:auto}
 .tabs button{flex:1;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:8px 6px;font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
 .tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
@@ -142,6 +150,7 @@ ul.tight li{margin:2px 0}
 <header class="top"><div class="top-in">
   <div class="daterow">
     <h1 id="dayTitle">今天</h1>
+    <span id="syncDot" class="syncdot" data-s="local" role="img" aria-label="保存在本机" title="保存在本机"></span>
     <button class="mini" id="prevDay" aria-label="前一天">‹</button>
     <input type="date" id="date" aria-label="选择日期">
     <button class="mini" id="nextDay" aria-label="后一天">›</button>
@@ -319,7 +328,7 @@ ul.tight li{margin:2px 0}
   <section class="view" id="v-data" hidden>
     <div class="card">
       <h2>备份与恢复</h2>
-      <p class="small muted" style="margin:0 0 10px">记录保存在这台设备的这个浏览器里，不会上传到任何地方。换手机、清缓存之前，先导出备份。建议每周导出一次。</p>
+      <p class="small muted" id="dataMode" style="margin:0 0 10px">记录保存在这台设备的这个浏览器里，不会上传到任何地方。换手机、清缓存之前，先导出备份。建议每周导出一次。</p>
       <div class="row">
         <button class="btn" id="exportBtn">导出备份</button>
         <label class="btn ghost" style="cursor:pointer;display:inline-block">导入备份<input type="file" id="importFile" accept="application/json,.json" hidden></label>
@@ -332,7 +341,7 @@ ul.tight li{margin:2px 0}
     </div>
     <div class="card">
       <h2>清空所有记录</h2>
-      <p class="small muted" style="margin:0 0 10px">会删掉这个浏览器里的所有记录，不能恢复。</p>
+      <p class="small muted" id="wipeNote" style="margin:0 0 10px">会删掉这个浏览器里的所有记录，不能恢复。</p>
       <button class="btn ghost" id="wipeBtn" style="border-color:var(--bad);color:var(--bad)">清空记录</button>
     </div>
   </section>
@@ -443,7 +452,42 @@ let S = {logs:{}};
 try { const raw = localStorage.getItem(KEY); if (raw) S = JSON.parse(raw); } catch(e) {}
 if (!S.logs) S.logs = {};
 let storeOK = true;
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){ if (storeOK){ storeOK=false; toast("这个浏览器不能保存数据（可能是无痕模式）"); } } }
+/* 在 claude.ai 里打开时，数据存进账号并在设备间同步；其他地方打开时存在本机浏览器 */
+let db = null, syncState = "local";
+const dirty = new Set();
+let flushT = null, flushing = false, needRender = false;
+function save(d){
+  if (!db){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){ if (storeOK){ storeOK=false; toast("这个浏览器不能保存数据（可能是无痕模式）"); } } return; }
+  (d ? [d] : Object.keys(S.logs)).forEach(x=>dirty.add(x));
+  clearTimeout(flushT); flushT = setTimeout(flush, 700);
+}
+async function flush(){
+  if (flushing){ clearTimeout(flushT); flushT = setTimeout(flush, 400); return; }
+  flushing = true;
+  const list = [...dirty]; dirty.clear();
+  for (const d of list){
+    try {
+      const v = S.logs[d];
+      if (!v || !Object.keys(v).length) await db.collection("logs").doc(d).delete();
+      else await db.collection("logs").doc(d).set(JSON.parse(JSON.stringify(v)));
+    } catch(e){
+      dirty.add(d); setSync("error");
+      if (e && e.code==="invalid_argument"){ toast("没有保存权限"); } else { clearTimeout(flushT); flushT = setTimeout(flush, 3000); }
+    }
+  }
+  flushing = false;
+  if (!dirty.size) setSync("synced");
+}
+function setSync(st){ syncState = st; const el = $("syncDot"); if (!el) return;
+  el.dataset.s = st;
+  el.title = el.ariaLabel = st==="synced" ? "已同步" : st==="error" ? "同步失败，稍后自动重试" : st==="loading" ? "正在读取" : "保存在本机";
+  if (tab==="data") renderData(); }
+function remoteRender(){
+  const a = document.activeElement;
+  if (a && a.matches && a.matches("input,textarea,select")){ needRender = true; return; }
+  renderAll();
+}
+document.addEventListener("focusout", ()=>{ if (!needRender) return; setTimeout(()=>{ const a=document.activeElement; if (!(a && a.matches && a.matches("input,textarea,select"))){ needRender=false; renderAll(); } }, 60); });
 const L = d => (S.logs[d] ||= {});
 
 /* ---------- Helpers ---------- */
@@ -534,17 +578,17 @@ function renderTrain(){
 }
 $("exList").addEventListener("input", e=>{
   const t = e.target;
-  if (t.id==="cardioMin"){ L(cur).cardio = num(t.value); save(); return; }
+  if (t.id==="cardioMin"){ L(cur).cardio = num(t.value); save(cur); return; }
   if (!t.dataset.ex) return;
   L(cur).sets[t.dataset.ex][+t.dataset.i][t.dataset.k] = t.value===""?"":Number(t.value);
-  save();
+  save(cur);
 });
 $("exList").addEventListener("click", e=>{
   const m = e.target.closest(".ex-media"); if (m){ m.closest(".ex").classList.toggle("zoom"); return; }
   const b = e.target.closest(".tick"); if (!b) return;
   const s = L(cur).sets[b.dataset.ex][+b.dataset.i];
   if (!s.done && (s.reps===""||s.reps==null)) s.reps = EX[b.dataset.ex].hi;
-  s.done = !s.done; save(); renderTrain();
+  s.done = !s.done; save(cur); renderTrain();
   if (s.done) toast("这一组记下了");
 });
 
@@ -587,29 +631,29 @@ $("foodQty").addEventListener("input", updatePreview);
 $("addFood").addEventListener("click", ()=>{
   const q = num($("foodQty").value) ?? (findFood($("foodSel").value).u==="g"?null:1);
   if (!q){ toast("先填克数"); return; }
-  addItem($("foodSel").value, q); save(); $("foodQty").value=""; renderFood(); toast("已添加");
+  addItem($("foodSel").value, q); save(cur); $("foodQty").value=""; renderFood(); toast("已添加");
 });
 $("addCustom").addEventListener("click", ()=>{
   const n = $("cName").value.trim(), k = num($("cKcal").value);
   if (!n || k==null){ toast("至少填名称和热量"); return; }
   (L(cur).foods ||= []).push({n, q:null, u:null, k, p:num($("cP").value)||0, f:num($("cF").value)||0, c:num($("cC").value)||0});
-  save(); ["cName","cKcal","cP","cF","cC"].forEach(id=>$(id).value=""); renderFood(); toast("已添加");
+  save(cur); ["cName","cKcal","cP","cF","cC"].forEach(id=>$(id).value=""); renderFood(); toast("已添加");
 });
 $("quick").addEventListener("click", e=>{
   const b = e.target.closest("[data-meal]"); if (!b) return;
   const m = MENU[parse(cur).getDay()][+b.dataset.meal]; m.items.forEach(([n,q])=>addItem(n,q));
-  (L(cur).meals ||= []).push(m.slot+"·"+m.n); save(); renderFood(); toast(m.slot+" 已添加");
+  (L(cur).meals ||= []).push(m.slot+"·"+m.n); save(cur); renderFood(); toast(m.slot+" 已添加");
 });
 $("foodList").addEventListener("input", e=>{
   const t = e.target; if (t.dataset.fi==null) return;
   const x = L(cur).foods[+t.dataset.fi], q = num(t.value); if (q==null) return;
   const f = findFood(x.n); if (!f) return;
-  Object.assign(x, {q}, calc(f,q)); save();
+  Object.assign(x, {q}, calc(f,q)); save(cur);
 });
 $("foodList").addEventListener("change", e=>{ if (e.target.dataset.fi!=null) renderFood(); });
 $("foodList").addEventListener("click", e=>{
   const b = e.target.closest("[data-del]"); if (!b) return;
-  L(cur).foods.splice(+b.dataset.del,1); save(); renderFood();
+  L(cur).foods.splice(+b.dataset.del,1); save(cur); renderFood();
 });
 
 /* ---------- Body view ---------- */
@@ -625,7 +669,7 @@ function renderBody(){
   renderWeeks();
 }
 Object.entries(bodyFields).forEach(([id,k])=>{
-  $(id).addEventListener("input", ()=>{ const v = $(id).value; L(cur)[k] = k==="note" ? (v.trim()||null) : num(v); save(); if (k==="weight") { clearTimeout(window._bt); window._bt=setTimeout(()=>{ const ws = Object.keys(S.logs).sort().filter(d=>S.logs[d].weight!=null).map(d=>({date:d,w:S.logs[d].weight})); drawChart(ws); renderWeeks(); },500);} });
+  $(id).addEventListener("input", ()=>{ const v = $(id).value; L(cur)[k] = k==="note" ? (v.trim()||null) : num(v); save(cur); if (k==="weight") { clearTimeout(window._bt); window._bt=setTimeout(()=>{ const ws = Object.keys(S.logs).sort().filter(d=>S.logs[d].weight!=null).map(d=>({date:d,w:S.logs[d].weight})); drawChart(ws); renderWeeks(); },500);} });
 });
 function drawChart(ws){
   const W=700,H=240,Lm=40,R=12,T=12,B=26, x0=START.date, x1=GOAL.date, span=dayDiff(x0,x1);
@@ -705,14 +749,14 @@ function renderWeekDays(days){
 }
 $("wkDays").addEventListener("input", e=>{
   const t = e.target; if (!t.dataset.d) return;
-  L(t.dataset.d)[t.dataset.k] = num(t.value); save();
+  L(t.dataset.d)[t.dataset.k] = num(t.value); save(t.dataset.d);
 });
 $("wkDays").addEventListener("change", e=>{ if (e.target.dataset.d){ const mon = mondayOf(cur); renderWeekStats(mon, [0,1,2,3,4,5,6].map(i=>addDays(mon,i))); } });
 $("wkDays").addEventListener("click", e=>{
   const b = e.target.closest("[data-tr]"); if (!b) return;
   const d = b.dataset.tr;
   if (setsDone(d)>0){ cur = d; document.querySelector('[data-tab="train"]').click(); return; }
-  L(d).trained = !L(d).trained; save(); renderWeek();
+  L(d).trained = !L(d).trained; save(d); renderWeek();
 });
 
 function renderWeeks(){
@@ -757,8 +801,15 @@ $("menuWeek").innerHTML = [1,2,3,4,5,6,0].map(d=>{ const t=menuTotals(d);
 function renderData(){
   const n = Object.keys(S.logs).filter(d=>Object.keys(S.logs[d]).length).length;
   $("dataInfo").textContent = `目前有 ${n} 天的记录。`;
+  if (db){
+    $("dataMode").textContent = "记录保存在你的Claude账号里，手机和电脑打开都是同一份，改了会自动同步。导入备份会把文件里的日子合并进来（同一天以文件为准）。" + (syncState==="error" ? " 现在同步失败，会自动重试。" : "");
+    $("wipeNote").textContent = "会删掉账号里的所有记录，所有设备上都会消失，不能恢复。";
+  }
 }
-$("exportBtn").addEventListener("click", ()=>{
+$("exportBtn").addEventListener("click", async ()=>{
+  const name = `薄肌记录-${TODAY}.json`;
+  let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch(e){}
+  if (dl){ try { await dl.save({filename:name, data:JSON.stringify(S,null,1)}); toast("备份已保存"); } catch(e){ if (!(e && e.code==="declined")) toast("没能保存备份"); } return; }
   const blob = new Blob([JSON.stringify(S,null,1)],{type:"application/json"});
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `薄肌记录-${TODAY}.json`;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
@@ -766,14 +817,17 @@ $("exportBtn").addEventListener("click", ()=>{
 });
 $("importFile").addEventListener("change", async e=>{
   const file = e.target.files[0]; if (!file) return;
-  try { const d = JSON.parse(await file.text()); if (!d.logs) throw 0; S = d; save(); renderAll(); toast("已恢复备份"); }
+  try { const d = JSON.parse(await file.text()); if (!d.logs) throw 0;
+    const ks = Object.keys(d.logs); ks.forEach(k=>{ S.logs[k] = d.logs[k]; if (db) dirty.add(k); });
+    if (db){ clearTimeout(flushT); flushT = setTimeout(flush, 100); } else save();
+    renderAll(); toast(`已导入 ${ks.length} 天的记录`); }
   catch(err){ toast("这个文件不是本网站的备份"); }
   e.target.value = "";
 });
 $("wipeBtn").addEventListener("click", e=>{
   const b = e.currentTarget;
   if (b.dataset.c!=="1"){ b.dataset.c="1"; b.textContent="再点一次确认清空"; setTimeout(()=>{b.dataset.c="";b.textContent="清空记录";},3000); return; }
-  S = {logs:{}}; save(); renderAll(); b.dataset.c=""; b.textContent="清空记录"; toast("已清空");
+  const old = Object.keys(S.logs); S = {logs:{}}; if (db){ old.forEach(k=>dirty.add(k)); clearTimeout(flushT); flushT = setTimeout(flush, 100); } else save(); renderAll(); b.dataset.c=""; b.textContent="清空记录"; toast("已清空");
 });
 
 /* ---------- Shell ---------- */
@@ -794,6 +848,21 @@ $("date").addEventListener("change", ()=>{ if ($("date").value){ cur = $("date")
 $("prevDay").addEventListener("click", ()=>{ cur = addDays(cur, tab==="week"?-7:-1); renderAll(); });
 $("nextDay").addEventListener("click", ()=>{ cur = addDays(cur, tab==="week"?7:1); renderAll(); });
 renderAll();
+(async ()=>{
+  if (!(window.claude && window.claude.use)) return;
+  let h = null; try { h = await window.claude.use("db"); } catch(e){}
+  if (!h) return;
+  db = h; S = {logs:{}}; setSync("loading");
+  let first = true;
+  db.collection("logs").onSnapshot(snap=>{
+    const seen = new Set();
+    snap.docs.forEach(doc=>{ seen.add(doc.id); if (!dirty.has(doc.id)) S.logs[doc.id] = JSON.parse(JSON.stringify(doc.data())); });
+    Object.keys(S.logs).forEach(d=>{ if (!seen.has(d) && !dirty.has(d) && !first) delete S.logs[d]; });
+    first = false;
+    if (!dirty.size && !flushing) setSync("synced");
+    remoteRender();
+  }, ()=>{ setSync("error"); toast("读取记录失败，请刷新页面"); });
+})();
 </script>
 </body>
 </html>
